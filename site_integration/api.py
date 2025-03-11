@@ -69,7 +69,20 @@ def validate_supplier_part_number(doc, method):
 
 		if not supplier_part_no:
 			missing_items.append(item.item_code)
-
+	
 	if missing_items:
 		missing_items_str = ", ".join(missing_items)
-		frappe.throw(f"Missing Supplier Part Numbers in: <br> {missing_items_str}")
+
+		error_message = f"Missing Supplier Part Numbers in: {missing_items_str}"
+		log = frappe.log_error(error_message, "Supplier Part Number missing")
+
+		log_name = log.name if log else ""
+
+		error_log_link = (
+			f'<a href="/app/error-log/{log_name}" target="_blank">View Error Log</a>'
+			if log_name
+			else "Check Error Log for details."
+		)
+
+		error_message = f"Missing Supplier Part Numbers in: <br> {missing_items_str}"
+		frappe.throw(f"{error_message}<br>{error_log_link}")
