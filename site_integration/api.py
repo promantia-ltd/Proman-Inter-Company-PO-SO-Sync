@@ -48,3 +48,28 @@ def export_purchase_order_to_v15(po_name):
 
 	except Exception as e:
 		frappe.log_error(f"Error exporting PO {po_name}: {str(e)}", "PO Export Error")
+
+def validate_supplier_part_number(doc, method):
+
+	"""Ensure all items have a Supplier Part Number when supplier is 'Proman Infrastructure Services Private Limited'"""
+	
+	supplier_name = "Proman Infrastructure Services Private Limited"
+	
+	if doc.supplier != supplier_name:
+		return
+	
+	missing_items = []
+
+	for item in doc.items:
+		supplier_part_no = frappe.db.get_value(
+			"Item Supplier",
+			{"parent": item.item_code, "supplier": doc.supplier},
+			"supplier_part_no"
+		)
+
+		if not supplier_part_no:
+			missing_items.append(item.item_code)
+
+	if missing_items:
+		missing_items_str = ", ".join(missing_items)
+		frappe.throw(f"Missing Supplier Part Numbers in: <br> {missing_items_str}")

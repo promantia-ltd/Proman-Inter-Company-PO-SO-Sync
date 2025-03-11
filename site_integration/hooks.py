@@ -103,6 +103,13 @@ app_license = "MIT"
 #	}
 # }
 
+doc_events = {
+	"Purchase Order": {
+		"before_save": "site_integration.api.validate_supplier_part_number"
+	}
+}
+
+
 # Scheduled Tasks
 # ---------------
 
