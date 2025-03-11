@@ -8,7 +8,7 @@ def export_purchase_order_to_v15(po_name):
 		config = frappe.get_single("PISPL Configuration")
 		v15_url = config.url
 		headers = {
-			"Authorization": f"token {config.api_key}:{config.api_secret}",
+			"Authorization": f"token {config.api_key}:{config.password}",
 			"Content-Type": "application/json"
 		}
 
@@ -42,12 +42,16 @@ def export_purchase_order_to_v15(po_name):
 		response = requests.post(f"{v15_url}/api/resource/Sales Order", json=payload, headers=headers)
 
 		if response.status_code == 200:
-			frappe.msgprint(f"Sales Order created in PISPL v15 for PO {po_name}")
+			return {"status": "success", "message": f"Sales Order created in PISPL v15 for PO {po_name}"}
 		else:
-			frappe.log_error(f"Failed to export PO {po_name}: {response.text}", "PO Export Error")
+			error_msg = f"Failed to export PO {po_name}: {response.text}"
+			frappe.log_error(error_msg, "PO Export Error")
+			return {"status": "error", "message": error_msg}
 
 	except Exception as e:
-		frappe.log_error(f"Error exporting PO {po_name}: {str(e)}", "PO Export Error")
+		error_msg = f"Error exporting PO {po_name}: {str(e)}"
+		frappe.log_error(error_msg, "PO Export Error")
+		return {"status": "error", "message": error_msg}
 
 def validate_supplier_part_number(doc, method):
 
