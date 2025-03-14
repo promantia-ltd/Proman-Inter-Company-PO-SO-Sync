@@ -121,3 +121,45 @@ def validate_supplier_part_number(doc, method):
 
 		error_message = f"Missing Supplier Part Numbers in: <br> {missing_items_str}"
 		frappe.throw(f"{error_message}<br>{error_log_link}")
+
+def cancel_sales_order_in_v15(doc, method):
+	supplier_name = "Proman Infrastructure Services Private Limited"
+	
+	if doc.supplier != supplier_name:
+		return
+	
+	try:
+		if not doc.so_name:
+			frappe.msgprint("No linked Sales Order found in PISPL site")
+			return
+
+		# Fetch v15 API credentials
+		config = frappe.get_single("PISPL Configuration")
+		password = config.get_password('password')
+		v15_url = config.url
+
+		headers = {
+			"Authorization": f"token {config.api_key}:{password}",
+			"Content-Type": "application/json"
+		}
+
+		payload = {"sales_order_name": doc.so_name}
+
+		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.create_sales_order.cancel_sales_order", json=payload, headers=headers)
+
+		if response.status_code == 200:
+			response_data = response.json()
+			frappe.log_error(title="SO Cancel Success in PISPL v15", message=response_data)
+			frappe.msgprint(f"Sales Order {doc.so_name} cancelled in PISPL v15 too!")
+			return
+
+		else:
+			error_response = response.json()
+			error_message = error_response.get("message", "Unknown error occurred")
+			frappe.log_error(f"Failed to cancel SO {doc.so_name}: {error_message}", "SO Cancel Error")
+			frappe.throw(f"Sales Order {doc.so_name} cancellation failed in PISPL v15")
+			return
+
+	except Exception as e:
+		frappe.log_error(f"Error canceling SO {doc.so_name}: {str(e)}", "SO Cancel Error2")
+		return
