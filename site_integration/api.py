@@ -50,8 +50,23 @@ def export_purchase_order_to_v15(po_name):
 		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.create_sales_order.create_sales_order", json=payload, headers=headers)
 
 		if response.status_code == 200:
-			frappe.log_error(f"{response.text}", "PO Export Success")
-			return {"status": "success", "message": f"Sales Order created in PISPL v15 for PO {po_name}"}
+			try:
+				response_data = response.json()  # Convert response to JSON
+				frappe.log_error(title="Response Data", message=response_data)
+				sales_order_id = response_data.get("message", {}).get("sales_order_id")
+				frappe.log_error(title="SO Name", message=sales_order_id)
+
+				# Update the Purchase Order in v13 with the Sales Order name
+				frappe.db.set_value("Purchase Order", po_name, "so_name", sales_order_id)
+				frappe.db.commit()  # Commit the changes
+
+				frappe.log_error(f"{response.text}", "PO Export Success")
+				return {"status": "success", "message": f"Sales Order created in PISPL v15 for PO {po_name}"}
+
+			except json.JSONDecodeError:
+				frappe.log_error(f"Invalid JSON response: {response.text}", "PO Export Error")
+				return {"status": "error", "message": "Invalid response format from v15"}
+					
 		else:
 			# Extract error message
 			try:
