@@ -28,9 +28,19 @@ def export_purchase_order_to_v15(po_name):
 				"rate": item.rate,
 				"delivery_date": item.schedule_date.strftime("%Y-%m-%d") if item.schedule_date else None
 			})
+		
+		taxes = []
+		for tax in doc.taxes:
+			taxes.append({
+				"charge_type": tax.charge_type,
+				"account_head": tax.account_head,
+				"rate": tax.rate
+			})
 
 		payload = {
+			"po_name": doc.name,
 			"items": items,
+			"taxes": taxes,
 			"transaction_date": doc.transaction_date.strftime("%Y-%m-%d") if doc.transaction_date else None,
 			"delivery_date": doc.schedule_date.strftime("%Y-%m-%d") if doc.schedule_date else None
 		}
@@ -43,9 +53,16 @@ def export_purchase_order_to_v15(po_name):
 			frappe.log_error(f"{response.text}", "PO Export Success")
 			return {"status": "success", "message": f"Sales Order created in PISPL v15 for PO {po_name}"}
 		else:
-			error_msg = f"Failed to export PO {po_name}: {response.text}"
+			# Extract error message
+			try:
+				error_response = response.json()
+				error_message = error_response.get("message", {}).get("error", "Unknown error occurred")
+			except json.JSONDecodeError:
+				error_message = response.text  # Fallback in case response is not JSON
+
+			error_msg = f"Failed to export PO {po_name}: {error_message}"
 			frappe.log_error(error_msg, "PO Export Error")
-			return {"status": "error", "message": error_msg}
+			return {"status": "error", "message": error_message}
 
 	except Exception as e:
 		error_msg = f"Error exporting PO {po_name}: {str(e)}"
