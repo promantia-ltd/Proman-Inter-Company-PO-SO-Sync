@@ -106,7 +106,8 @@ app_license = "MIT"
 doc_events = {
 	"Purchase Order": {
 		"before_save": "site_integration.api.validate_supplier_part_number",
-		"on_cancel": "site_integration.api.cancel_sales_order_in_v15"
+		"on_cancel": "site_integration.api.cancel_sales_order_in_v15",
+        "on_submit": "site_integration.api.trigger_po_amendment_sync"
 	}
 }
 

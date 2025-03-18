@@ -163,3 +163,87 @@ def cancel_sales_order_in_v15(doc, method):
 	except Exception as e:
 		frappe.log_error(f"Error canceling SO {doc.so_name}: {str(e)}", "SO Cancel Error2")
 		return
+
+def export_amended_purchase_order_to_v15(po_name):
+	try:
+		frappe.log_error(title="Amending PO")
+		doc = frappe.get_doc("Purchase Order", po_name)
+		
+		config = frappe.get_single("PISPL Configuration")
+		password = config.get_password('password')
+		v15_url = config.url
+
+		headers = {
+			"Authorization": f"token {config.api_key}:{password}",
+			"Content-Type": "application/json"
+		}
+
+		# Ensure the PO has a linked SO
+		if not doc.so_name:
+			frappe.msgprint("No linked Sales Order found in PISPL site.")
+			return
+
+		items = []
+		for item in doc.items:
+			# v15_item_code = frappe.db.get_value(
+			# 	"Item Supplier",
+			# 	{"parent": item.item_code},
+			# 	"supplier_part_no"
+			# )
+
+			items.append({
+				"item_code": item.supplier_part_no,
+				"qty": item.qty,
+				"rate": item.rate,
+				"delivery_date": item.schedule_date.strftime("%Y-%m-%d") if item.schedule_date else None
+			})
+
+		taxes = []
+		for tax in doc.taxes:
+			taxes.append({
+				"charge_type": tax.charge_type,
+				"account_head": tax.account_head,
+				"rate": tax.rate
+			})
+
+		payload = {
+			"old_so_name": doc.so_name,  # Pass old SO name for reference
+			"new_po_name": doc.name,  # New amended PO name
+			"items": items,
+			"taxes": taxes,
+			"transaction_date": doc.transaction_date.strftime("%Y-%m-%d") if doc.transaction_date else None,
+			"delivery_date": doc.schedule_date.strftime("%Y-%m-%d") if doc.schedule_date else None
+		}
+
+		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.create_sales_order.amend_sales_order", json=payload, headers=headers)
+
+		if response.status_code == 200:
+			response_data = response.json()
+			curr_so_name = doc.so_name
+			frappe.log_error(title="Response Data", message=response_data)
+			new_sales_order_id = response_data.get("message", {}).get("new_sales_order_id")
+
+			# if new_sales_order_id:
+			frappe.db.set_value("Purchase Order", po_name, "so_name", new_sales_order_id)
+			frappe.db.commit()
+
+			# return {"status": "success", "message": f"Amended Sales Order {new_sales_order_id} created for PO {po_name}"}
+
+			frappe.msgprint(f"Sales Order {curr_so_name} amended in PISPL v15 too!")
+
+		else:
+			error_message = response.json().get("message", "Unknown error occurred")
+			frappe.log_error(f"Failed to amend PO {po_name}: {error_message}", "PO Amend Error")
+			return {"status": "error", "message": error_message}
+
+	except Exception as e:
+		frappe.log_error(f"Error amending PO {po_name}: {str(e)}", "PO Amend Error")
+		return {"status": "error", "message": str(e)}
+
+
+def trigger_po_amendment_sync(doc, method):
+	frappe.log_error(title="Triggering PO amendment sync")
+	"""Hook function to trigger amendment sync when a PO is amended."""
+	if doc.amended_from:
+		export_amended_purchase_order_to_v15(doc.name)
+		doc.reload()
