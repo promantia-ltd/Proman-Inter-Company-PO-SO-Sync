@@ -47,7 +47,7 @@ def export_purchase_order_to_v15(po_name):
 
 		frappe.log_error(title="payload", message=payload)
 
-		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.create_sales_order.create_sales_order", json=payload, headers=headers)
+		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.sales_order.create_sales_order", json=payload, headers=headers)
 
 		if response.status_code == 200:
 			try:
@@ -153,7 +153,7 @@ def cancel_sales_order_in_v15(doc, method):
 
 		payload = {"sales_order_name": doc.so_name}
 
-		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.create_sales_order.cancel_sales_order", json=payload, headers=headers)
+		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.sales_order.cancel_sales_order", json=payload, headers=headers)
 
 		if response.status_code == 200:
 			response_data = response.json()
@@ -228,7 +228,7 @@ def export_amended_purchase_order_to_v15(po_name):
 			"delivery_date": doc.schedule_date.strftime("%Y-%m-%d") if doc.schedule_date else None
 		}
 
-		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.create_sales_order.amend_sales_order", json=payload, headers=headers)
+		response = requests.post(f"{v15_url}/api/method/proman.proman.utils.sales_order.amend_sales_order", json=payload, headers=headers)
 
 		if response.status_code == 200:
 			response_data = response.json()
