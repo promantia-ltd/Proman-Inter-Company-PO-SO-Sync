@@ -12,6 +12,14 @@ app_license = "MIT"
 # Includes in <head>
 # ------------------
 
+fixtures = [{'dt': "Client Script",
+                "filters": [
+                    [
+                        "name", "in", ["Purchase Order-Form"]
+                    ]
+                ]
+             }
+			]
 # include js, css files in header of desk.html
 # app_include_css = "/assets/site_integration/css/site_integration.css"
 # app_include_js = "/assets/site_integration/js/site_integration.js"
