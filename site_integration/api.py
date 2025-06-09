@@ -21,7 +21,8 @@ def export_purchase_order_to_v15(po_name):
 				"item_code": item.supplier_part_no,
 				"qty": item.qty,
 				"rate": item.rate,
-				"delivery_date": item.schedule_date.strftime("%Y-%m-%d") if item.schedule_date else None
+				"delivery_date": item.schedule_date.strftime("%Y-%m-%d") if item.schedule_date else None,
+				"acepl_item_code":item.item_code
 			})
 		
 		taxes = []
